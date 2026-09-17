@@ -49,26 +49,26 @@
       </div>
 
       <div class="secondary-actions">
-        <button class="menu-tile tournament-tile" data-open="tournament-screen"><span>🏆</span><b>TORNEO</b><small id="tournament-menu-status">DISPONIBLE</small></button>
-        <button class="menu-tile" data-open="shop-screen"><span>🛒</span><b>TIENDA</b><small>PERSONAJES</small></button>
-        <button class="menu-tile" data-open="profile-screen"><span>⚙</span><b>PERFIL</b><small>PERSONALIZAR</small></button>
+        <button class="menu-tile tournament-tile" data-open="tournament-screen"><span>★</span><b>TORNEO</b><small id="tournament-menu-status">DISPONIBLE</small></button>
+        <button class="menu-tile" data-open="shop-screen"><span>$</span><b>TIENDA</b><small>PERSONAJES</small></button>
+        <button class="menu-tile" data-open="profile-screen"><span>#</span><b>PERFIL</b><small>PERSONALIZAR</small></button>
       </div>
 
-      <p class="control-hint"><kbd>W</kbd> EQUIPO 1 &nbsp;·&nbsp; <kbd>↑</kbd> EQUIPO 2</p>
+      <p class="control-hint"><kbd>W</kbd> / <kbd>↑</kbd> MANTENÉ: SALTAR Y AGARRAR · SOLTÁ: LANZAR</p>
     </section>
 
     <section id="online-screen" class="screen panel-screen">
       <button class="back-button" data-back>‹</button>
-      <div class="panel-title"><span>🌐</span><h2>JUGAR ONLINE</h2><p>DOS JUGADORES · DOS PERSONAJES CADA UNO</p></div>
+      <div class="panel-title"><span>@</span><h2>JUGAR ONLINE</h2><p>DOS JUGADORES · DOS PERSONAJES CADA UNO</p></div>
       <div class="online-grid">
         <button class="online-card public" data-action="public-match">
-          <span class="online-icon">⚡</span><b>PARTIDA PÚBLICA</b><small>BUSCAR UN RIVAL</small>
+          <span class="online-icon">!!</span><b>PARTIDA PÚBLICA</b><small>BUSCAR UN RIVAL</small>
         </button>
         <button class="online-card" data-action="create-room">
           <span class="online-icon">＋</span><b>CREAR SALA</b><small>CÓDIGO PRIVADO</small>
         </button>
         <form id="join-form" class="online-card join-card">
-          <span class="online-icon">⌨</span><b>UNIRSE A SALA</b>
+          <span class="online-icon">CODE</span><b>UNIRSE A SALA</b>
           <input id="room-code" maxlength="5" autocomplete="off" placeholder="ABCDE" aria-label="Código de sala">
           <button type="submit">ENTRAR</button>
         </form>
@@ -93,7 +93,7 @@
 
     <section id="profile-screen" class="screen panel-screen">
       <button class="back-button" data-back>‹</button>
-      <div class="panel-title"><span>⚙</span><h2>MI PERFIL</h2><p>TU IDENTIDAD EN LA CANCHA</p></div>
+      <div class="panel-title"><span>#</span><h2>MI PERFIL</h2><p>TU IDENTIDAD EN LA CANCHA</p></div>
       <div class="profile-card">
         <div class="profile-avatar-preview" id="profile-avatar-preview">01</div>
         <label>NOMBRE DEL JUGADOR<input id="profile-name" maxlength="12" autocomplete="off"></label>
@@ -105,15 +105,15 @@
 
     <section id="shop-screen" class="screen panel-screen shop-screen">
       <button class="back-button" data-back>‹</button>
-      <div class="panel-title"><span>🛒</span><h2>TIENDA</h2><p>GANÁ PARTIDOS · DESBLOQUEÁ EQUIPOS</p></div>
+      <div class="panel-title"><span>$</span><h2>TIENDA</h2><p>GANÁ PARTIDOS · DESBLOQUEÁ EQUIPOS</p></div>
       <div class="shop-balance"><span class="coin">●</span><b id="shop-coins">0</b></div>
       <div id="shop-grid" class="shop-grid"></div>
     </section>
 
     <section id="tournament-screen" class="screen panel-screen tournament-screen">
       <button class="back-button" data-back>‹</button>
-      <div class="panel-title"><span>🏆</span><h2>COPA RANDOM</h2><p>CUATRO RONDAS · DIFICULTAD CRECIENTE</p></div>
-      <div id="tournament-lock" class="tournament-lock hidden"><span>⏱</span><b>PRÓXIMO TORNEO</b><strong id="tournament-timer">30:00</strong></div>
+      <div class="panel-title"><span>★</span><h2>COPA RANDOM</h2><p>CUATRO RONDAS · DIFICULTAD CRECIENTE</p></div>
+      <div id="tournament-lock" class="tournament-lock hidden"><span>TIME</span><b>PRÓXIMO TORNEO</b><strong id="tournament-timer">30:00</strong></div>
       <div id="bracket" class="bracket"></div>
       <div class="tournament-prize"><small>PREMIO MÁXIMO</small><b><span class="coin">●</span> 740</b></div>
       <button id="tournament-start" class="primary-button" data-action="start-tournament">COMENZAR OCTAVOS</button>
@@ -121,7 +121,7 @@
 
     <section id="result-screen" class="screen result-screen">
       <div class="result-rays"></div>
-      <div class="result-trophy" id="result-icon">🏆</div>
+      <div class="result-trophy" id="result-icon">★</div>
       <h2 id="result-title">¡GANASTE!</h2>
       <p id="result-subtitle">PARTIDO TERMINADO</p>
       <div class="result-score"><b id="result-left">5</b><span>—</span><b id="result-right">3</b></div>

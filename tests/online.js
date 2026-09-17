@@ -29,25 +29,28 @@ async function run(){
   const rejected=waitEvent(third,"error-message");third.emit("join-private",{code,profile:{name:"TERCERO"}});await rejected;
 
   const states={a:[],b:[]};a.on("snapshot",s=>states.a.push(s));b.on("snapshot",s=>states.b.push(s));
-  const timer=setInterval(()=>{a.emit("input",{action:"jump"});setTimeout(()=>b.emit("input",{action:"jump"}),75);},210);
-  await new Promise(resolve=>setTimeout(resolve,5200));clearInterval(timer);
+  let down=false;
+  const timer=setInterval(()=>{down=!down;a.emit("input",{action:"control",down});setTimeout(()=>b.emit("input",{action:"control",down}),70);},260);
+  await new Promise(resolve=>setTimeout(resolve,5400));clearInterval(timer);
+  a.emit("input",{action:"control",down:false});b.emit("input",{action:"control",down:false});
   if(states.a.length<70||states.b.length<70)throw new Error(`Snapshots insuficientes: ${states.a.length}/${states.b.length}`);
   const sa=states.a.at(-1),sb=states.b.at(-1),early=states.a[10];
   const sync=Math.abs(sa.ball.x-sb.ball.x)+Math.abs(sa.ball.y-sb.ball.y)+Math.abs(sa.players[0].x-sb.players[0].x);
   const motion=Math.abs(sa.ball.x-early.ball.x)+Math.abs(sa.ball.y-early.ball.y)+Math.abs(sa.players[0].x-early.players[0].x);
   if(sync>.001)throw new Error(`Desincronización: ${sync}`);
   if(motion<20)throw new Error("La partida online no avanzó");
-  if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==2||p.legs.length!==2))throw new Error("Ragdolls incompletos en snapshot");
+  if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==1||p.legs.length!==0))throw new Error("Personajes incorrectos en snapshot");
+  if(!states.a.some(s=>s.players.some(p=>p.control)))throw new Error("El servidor no registró el control mantenido");
 
   a.close();b.close();third.close();
   const c=connect(),d=connect();await Promise.all([waitEvent(c,"connect"),waitEvent(d,"connect")]);
   const publicC=waitEvent(c,"match-start"),publicD=waitEvent(d,"match-start");
   c.emit("join-public",{name:"PUBLICO 1"});d.emit("join-public",{name:"PUBLICO 2"});
   await Promise.all([publicC,publicD]);
-  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],syncDelta:sync,motion:Math.round(motion),publicMatch:true})}`);
+  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],syncDelta:sync,motion:Math.round(motion),heldInput:true,publicMatch:true})}`);
 }
 
 server.stderr.on("data",data=>process.stderr.write(data));
 server.on("exit",code=>{if(!finished)close(1,`El servidor terminó antes de la prueba (${code})`);});
 server.stdout.on("data",data=>{if(data.toString().includes("escuchando"))run().catch(error=>close(1,error.stack||String(error)));});
-setTimeout(()=>close(1,"Timeout de la prueba online"),14000);
+setTimeout(()=>close(1,"Timeout de la prueba online"),15000);

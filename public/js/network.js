@@ -12,7 +12,7 @@
     async publicMatch(profile){const s=await this.connect();s.emit("join-public",profile);}
     async createRoom(profile){const s=await this.connect();s.emit("create-private",profile);}
     async joinRoom(code,profile){const s=await this.connect();s.emit("join-private",{code:String(code).toUpperCase(),profile});}
-    input(){this.socket?.emit("input",{action:"jump",at:Date.now()});}
+    input(down){this.socket?.emit("input",{action:"control",down:!!down,at:Date.now()});}
     cancel(){this.socket?.emit("leave-match");}
     disconnect(){this.socket?.disconnect();this.socket=null;this.connected=false;}
   }

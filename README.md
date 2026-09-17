@@ -18,6 +18,8 @@ Cada jugador controla sus dos personajes con una sola tecla, como en Basket Rand
 - Equipo derecho: `FLECHA ARRIBA`.
 - En celular: boton tactil grande.
 
+La tecla no dispara automaticamente al aro: hay que mantenerla para saltar, levantar el brazo y conservar la pelota cuando la mano hace contacto. Al soltarla, la pelota sale con la velocidad fisica del brazo y del cuerpo.
+
 ## Probar todo localmente
 
 ```bash
@@ -59,5 +61,6 @@ El servidor tambien sirve el cliente, por lo que la URL de Render permite probar
 - Las salas tienen un maximo estricto de 2 conexiones.
 - El servidor es autoritativo: recibe pulsaciones y transmite el estado fisico del partido.
 - Navegador y servidor usan el mismo motor Planck/Box2D y los mismos modificadores.
+- El juego se renderiza primero en una superficie de 320 x 180 y se escala sin suavizado para que personajes, pelota, canchas y efectos sean pixel art real.
 - Los escenarios, uniformes e interfaz son originales y estan dibujados por el propio juego; no se incluyen assets copiados.
 - La licencia de Planck.js está incluida en `THIRD_PARTY_NOTICES.md`.

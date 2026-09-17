@@ -54,3 +54,24 @@ button{color:inherit;cursor:pointer;border:0}
 @media(max-width:760px){#app{min-height:420px}.screen{padding:16px}.menu-screen{padding-bottom:12px}.top-actions{align-items:flex-start}.pill-button,.coin-pill{padding:5px 9px;font-size:10px}.pill-button span{width:29px;height:29px}.title-wrap{margin-top:0}.title-wrap h1 span,.title-wrap h1 em{font-size:clamp(39px,12vw,64px)}.main-actions{gap:5px}.triangle-card{width:88px;height:88px}.secondary-actions{gap:6px}.menu-tile{min-width:100px;padding:7px 9px;grid-template-columns:25px 1fr}.menu-tile>span{font-size:19px}.menu-tile b{font-size:10px}.control-hint{font-size:8px}.online-grid{grid-template-columns:1fr;max-width:430px}.online-card{min-height:112px;display:grid;grid-template-columns:65px 1fr;grid-template-rows:1fr 1fr;text-align:left;padding:13px}.online-icon{grid-row:1/3;font-size:39px}.join-card{grid-template-columns:50px 1fr auto}.join-card input{width:108px}.join-card button{grid-column:3;grid-row:1/3}.shop-grid{grid-template-columns:repeat(2,1fr)}.bracket{min-width:720px}.tournament-screen{align-items:flex-start}.tournament-screen .panel-title,.tournament-screen .primary-button,.tournament-screen .tournament-prize{align-self:center}.versus-screen{padding:6px}.versus-side{width:38%}.versus-center{width:24%}.profile-card{padding:16px}.panel-title{margin-top:55px}.shop-balance{top:28px;right:16px}.hud{top:6px}.score{width:52px;height:45px;font-size:26px;border-width:3px}.round-pill{font-size:6px;padding:5px}.pause-btn{width:36px;height:36px;right:7px;top:7px}.touch-button{display:block!important}.result-screen h2{font-size:42px}}
 @media(max-height:620px) and (orientation:landscape){.menu-screen{padding:9px 18px}.title-wrap h1 span,.title-wrap h1 em{font-size:42px}.title-wrap h1 small{font-size:10px;margin-top:10px}.triangle-card{width:72px;height:72px}.triangle-card b{font-size:25px}.secondary-actions{position:absolute;right:12px;bottom:12px;flex-direction:column}.menu-tile{min-width:115px}.control-hint{position:absolute;left:15px;bottom:12px}.online-grid{grid-template-columns:repeat(3,1fr)}.online-card{min-height:180px;display:flex;text-align:center}.panel-title{margin:2px 0 13px}.panel-title>span{font-size:26px}.panel-title h2{font-size:25px}.profile-card{display:grid;grid-template-columns:95px 1fr;gap:10px}.profile-avatar-preview{grid-row:1/4}.stats-card{position:absolute;right:15px;bottom:15px;width:300px}.shop-grid{grid-template-columns:repeat(4,1fr)}.skin-preview{height:65px}.shop-item p{display:none}}
 .touch-button.hidden{display:none!important}
+
+/* Interfaz retro: bordes duros, sombras enteras y tipografía de terminal. */
+html,body,button,input{font-family:"Courier New",Courier,monospace;font-weight:900}
+.screen,.panel-screen,.matchmaking-screen,.result-screen{background-color:rgba(8,15,25,.78)}
+.pill-button,.coin-pill,.menu-tile,.online-card,.profile-card,.stats-card,.shop-item,.back-button,.primary-button,.secondary-button,.room-code,.tournament-lock,.bracket-match,.modal,.toast,.round-pill,.pause-btn{border-radius:0!important;box-shadow:6px 6px 0 rgba(0,0,0,.48)!important}
+.online-card,.shop-item{background:#17263d!important}
+.online-card.public{background:#176aa8!important}
+.title-wrap h1,.panel-title h2,.versus-side strong,.result-screen h2{text-shadow:4px 4px 0 #000!important}
+.title-ball{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 25%,100% 75%,75% 100%,25% 100%,0 75%,0 25%);background:#ef7d24;box-shadow:inset 12px -12px 0 #bd4d18}
+.title-ball:before{border-radius:0}.title-ball:after{border-radius:0}
+.triangle-card .triangle{border-radius:0;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.pill-button span,.profile-avatar-preview,.versus-avatar,.coin,.touch-button,.search-orbit,.search-ball,.server-status i{border-radius:0;clip-path:polygon(20% 0,80% 0,100% 20%,100% 80%,80% 100%,20% 100%,0 80%,0 20%)}
+.control-hint,.panel-title p,.online-card small,.server-status,.profile-card label,.stats-card span,.shop-item p,.bracket-match,.round-pill,.modifier-banner span,.result-screen p,.toast{font-family:"Courier New",Courier,monospace}
+.modifier-banner{border-radius:0;box-shadow:8px 8px 0 rgba(0,0,0,.48)}
+.menu-screen{background:rgba(7,13,23,.18)!important}
+.panel-screen,.matchmaking-screen,.result-screen{background:#0d1727!important;background-image:none!important}
+.online-card,.shop-item{background-image:none!important}
+.versus-screen:before{background:#176aa8!important}.versus-screen:after{background:#cf3e35!important}
+.panel-title>span,.online-icon,.menu-tile>span,.result-trophy,.tournament-lock>span{font-family:"Courier New",Courier,monospace;font-weight:900;color:#ffc832;text-shadow:4px 4px 0 #000;filter:none}
+.pixel-player:before{border-radius:0!important;box-shadow:inset -6px -3px 0 rgba(0,0,0,.18);clip-path:none}
+.pixel-player:after{clip-path:none;border-radius:0!important;box-shadow:inset 0 -10px 0 rgba(0,0,0,.2)}
