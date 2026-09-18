@@ -46,8 +46,9 @@ for(const [ball,points] of [["normal",1],["rainbow",2]]){
 for(const team of [0,1])for(const index of [0,1]){
   const game=fixedGame(`catch-${team}-${index}`);
   const player=game.players.find(p=>p.team===team&&p.index===index),hand=game.handPoint(player);
-  game.setControl(team,true);game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();for(let i=0;i<3&&!game.holder;i++)game.step(1/60);
+  const contactPoint=planck.Vec2(hand.x+player.attackDir*.55,hand.y),before=contactPoint.clone();game.ball.setTransform(contactPoint,0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.setControl(team,true);
   assert(game.holder?.id===player.id&&game.holdJoint,`El jugador ${team}/${index} no agarró por contacto`);
+  assert(planck.Vec2.distance(before,game.ball.getPosition())<.001,`El agarre ${team}/${index} teletransportó la pelota`);
   for(let i=0;i<26;i++)game.step(1/60);
   const heldDistance=planck.Vec2.distance(game.handPoint(player),game.ball.getPosition());
   assert(heldDistance<.8,`La pelota no quedó sujeta en ${team}/${index}: ${heldDistance}`);

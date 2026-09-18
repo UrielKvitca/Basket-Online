@@ -64,7 +64,7 @@ El servidor tambien sirve el cliente, por lo que la URL de Render permite probar
 - El servidor es autoritativo: recibe pulsaciones y transmite el estado fisico del partido a ambos jugadores por igual.
 - Los snapshots salen a 30 Hz con número de secuencia y son descartables: una conexión lenta no acumula estados viejos. El cliente usa un búfer de interpolación de 90 ms para absorber variaciones de red.
 - La pantalla online muestra la latencia aproximada al servidor.
-- El canvas mantiene siempre la proporción 16:9, sin estirar la cancha ni los cuerpos en pantallas diferentes.
+- La cancha vuelve a ocupar toda la pantalla disponible, sin bordes ni reducción visible del área de juego.
 - Navegador y servidor usan el mismo motor Planck/Box2D y los mismos modificadores.
 - El juego se renderiza primero en una superficie de 320 x 180 y se escala sin suavizado para que personajes, pelota, canchas y efectos sean pixel art real.
 - Los escenarios, uniformes e interfaz son originales y estan dibujados por el propio juego; no se incluyen assets copiados.
