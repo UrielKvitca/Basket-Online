@@ -33,21 +33,25 @@ async function run(){
   const timer=setInterval(()=>{down=!down;a.emit("input",{action:"control",down});setTimeout(()=>b.emit("input",{action:"control",down}),70);},260);
   await new Promise(resolve=>setTimeout(resolve,5400));clearInterval(timer);
   a.emit("input",{action:"control",down:false});b.emit("input",{action:"control",down:false});
-  if(states.a.length<70||states.b.length<70)throw new Error(`Snapshots insuficientes: ${states.a.length}/${states.b.length}`);
+  if(states.a.length<120||states.b.length<120)throw new Error(`Snapshots insuficientes: ${states.a.length}/${states.b.length}`);
   const sa=states.a.at(-1),sb=states.b.at(-1),early=states.a[10];
   const sync=Math.abs(sa.ball.x-sb.ball.x)+Math.abs(sa.ball.y-sb.ball.y)+Math.abs(sa.players[0].x-sb.players[0].x);
   const motion=Math.abs(sa.ball.x-early.ball.x)+Math.abs(sa.ball.y-early.ball.y)+Math.abs(sa.players[0].x-early.players[0].x);
   if(sync>.001)throw new Error(`Desincronización: ${sync}`);
   if(motion<20)throw new Error("La partida online no avanzó");
-  if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==1||p.legs.length!==0))throw new Error("Personajes incorrectos en snapshot");
+  if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==1||p.legs.length!==2))throw new Error("Personajes incorrectos en snapshot");
   if(!states.a.some(s=>s.players.some(p=>p.control)))throw new Error("El servidor no registró el control mantenido");
+  if(states.a.some((s,i)=>i&&s.net.seq<=states.a[i-1].net.seq))throw new Error("La secuencia de snapshots no es creciente");
 
   a.close();b.close();third.close();
   const c=connect(),d=connect();await Promise.all([waitEvent(c,"connect"),waitEvent(d,"connect")]);
+  const roomCreated=waitEvent(c,"public-room-created");c.emit("create-public",{name:"PUBLICO 1"});const publicRoom=await roomCreated;
+  const roomsListed=waitEvent(d,"public-rooms");d.emit("list-public-rooms");const listing=await roomsListed;
+  if(!listing.rooms.some(room=>room.id===publicRoom.roomId&&room.host==="PUBLICO 1"))throw new Error("La sala pública no apareció en el navegador");
   const publicC=waitEvent(c,"match-start"),publicD=waitEvent(d,"match-start");
-  c.emit("join-public",{name:"PUBLICO 1"});d.emit("join-public",{name:"PUBLICO 2"});
+  d.emit("join-public-room",{roomId:publicRoom.roomId,profile:{name:"PUBLICO 2"}});
   await Promise.all([publicC,publicD]);
-  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],syncDelta:sync,motion:Math.round(motion),heldInput:true,publicMatch:true})}`);
+  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],syncDelta:sync,motion:Math.round(motion),heldInput:true,publicBrowser:true})}`);
 }
 
 server.stderr.on("data",data=>process.stderr.write(data));
