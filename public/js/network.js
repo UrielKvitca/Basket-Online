@@ -1,8 +1,10 @@
 (function(){
   "use strict";
   class Network{
-    constructor(handlers={}){this.socket=null;this.handlers=handlers;this.connected=false;this.url="";this.loading=null;this.pingTimer=null;this.latency=0;}
-    getUrl(){const saved=window.BasketStore?.get().settings.serverUrl,configured=saved||window.BASKET_CONFIG?.SERVER_URL||"";if(configured)return configured.replace(/\/$/,"");if(location.hostname.endsWith(".onrender.com")||location.hostname==="localhost"||location.hostname==="127.0.0.1")return location.origin;return"";}
+    constructor(handlers={}){this.socket=null;this.handlers=handlers;this.connected=false;this.url="";this.loading=null;this.pingTimer=null;this.latency=0;this.inputSeq=0;}
+    isLanOrigin(){const host=location.hostname;return/^(localhost|127\.0\.0\.1|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)||host.includes(":")||host.endsWith(".local");}
+    getUrl(){const saved=window.BasketStore?.get().settings.serverUrl,configured=saved||window.BASKET_CONFIG?.SERVER_URL||"";if(configured)return configured.replace(/\/$/,"");const host=location.hostname;if(location.protocol.startsWith("http")&&(host.endsWith(".onrender.com")||this.isLanOrigin()))return location.origin;return"";}
+    async lanUrls(){if(!this.isLanOrigin())return[];try{const response=await fetch(`${location.origin}/api/lan`,{cache:"no-store"});if(!response.ok)return[];const data=await response.json();return Array.isArray(data.urls)?data.urls:[];}catch(_error){return[];}}
     loadClient(url){if(window.io)return Promise.resolve();if(this.loading)return this.loading;this.loading=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=`${url}/socket.io/socket.io.js`;s.onload=resolve;s.onerror=()=>reject(new Error("No se pudo cargar Socket.IO"));document.head.appendChild(s);});return this.loading;}
     async connect(){
       this.url=this.getUrl();if(!this.url){if(location.hostname==="localhost"||location.hostname==="127.0.0.1")this.url=location.origin;else throw new Error("Configurá la URL de Render en js/config.js");}
@@ -23,7 +25,7 @@
     async joinPublicRoom(roomId,profile){const s=await this.connect();s.emit("join-public-room",{roomId:String(roomId).toUpperCase(),profile});}
     async createRoom(profile){const s=await this.connect();s.emit("create-private",profile);}
     async joinRoom(code,profile){const s=await this.connect();s.emit("join-private",{code:String(code).toUpperCase(),profile});}
-    input(down){this.socket?.emit("input",{action:"control",down:!!down,at:Date.now()});}
+    input(down){const seq=++this.inputSeq;this.socket?.emit("input",{action:"control",down:!!down,seq,at:Date.now()});return seq;}
     cancel(){this.socket?.emit("leave-match");}
     disconnect(){this.stopLatencyProbe();this.socket?.disconnect();this.socket=null;this.connected=false;}
   }

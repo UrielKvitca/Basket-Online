@@ -14,11 +14,11 @@ Juego de basquet arcade 2 contra 2 hecho con Canvas y fisica Box2D mediante Plan
 
 Cada jugador controla sus dos personajes con una sola tecla, como en Basket Random:
 
-- Equipo izquierdo: `W`.
-- Equipo derecho: `FLECHA ARRIBA`.
+- En 1P, torneo y online: cualquier tecla de `WASD` o cualquiera de las cuatro flechas.
+- En 2P local: equipo izquierdo con `WASD`; equipo derecho con las flechas.
 - En celular: boton tactil grande.
 
-La tecla no dispara automaticamente al aro: hay que mantenerla para saltar, levantar el brazo y conservar la pelota cuando la mano hace contacto. Al soltarla, la pelota sale con la velocidad fisica del brazo y del cuerpo.
+La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida y hace un pequeño ajuste hasta la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
 
 Los personajes usan torso, cabeza, brazo y dos piernas físicas. Un sistema de torque y centro de masa bajo los devuelve gradualmente a la vertical cuando quedan libres; no se recolocan por teletransporte. El salto toma la inclinación y el momento actual del cuerpo, la pelota puede robarse por contacto, y las salidas tienen una reposición animada.
 
@@ -30,6 +30,10 @@ npm start
 ```
 
 Abrir `http://localhost:3000`. Para probar online, abrir dos ventanas.
+
+### Jugar por la misma red WiFi
+
+Al iniciar el servidor, la consola muestra una o más direcciones con el texto `Misma WiFi`, por ejemplo `http://192.168.1.20:3000`. Abrir esa misma dirección en los dos dispositivos conectados al mismo router. El partido usa el servidor de la PC anfitriona y evita el viaje hasta Render. En Windows puede ser necesario permitir Node.js en el Firewall para redes privadas.
 
 Para ejecutar las pruebas de fisica, interfaz y dos clientes online:
 
@@ -62,7 +66,7 @@ El servidor tambien sirve el cliente, por lo que la URL de Render permite probar
 - Perfil, monedas, compras y espera del torneo se guardan en `localStorage`.
 - Las salas tienen un maximo estricto de 2 conexiones. Las públicas muestran anfitrión, rango y ocupación; las privadas no aparecen en el navegador.
 - El servidor es autoritativo: recibe pulsaciones y transmite el estado fisico del partido a ambos jugadores por igual.
-- Los snapshots salen a 30 Hz con número de secuencia y son descartables: una conexión lenta no acumula estados viejos. El cliente usa un búfer de interpolación de 90 ms para absorber variaciones de red.
+- Los snapshots salen a 60 Hz, llevan confirmación de la última entrada procesada y son descartables: una conexión lenta no acumula estados viejos. El cliente usa interpolación adaptativa de 22 a 55 ms y extrapolación física corta para evitar congelamientos entre paquetes.
 - La pantalla online muestra la latencia aproximada al servidor.
 - La cancha vuelve a ocupar toda la pantalla disponible, sin bordes ni reducción visible del área de juego.
 - Navegador y servidor usan el mismo motor Planck/Box2D y los mismos modificadores.

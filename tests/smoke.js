@@ -2,7 +2,7 @@
 const fs=require("fs");
 const vm=require("vm");
 const planck=require("planck");
-const {Game,constants}=require("../public/js/engine.js");
+const {Game,constants,extrapolateSnapshot}=require("../public/js/engine.js");
 
 function assert(value,message){if(!value)throw new Error(message);}
 function approx(a,b,tolerance,message){assert(Math.abs(a-b)<=tolerance,`${message}: ${a} vs ${b}`);}
@@ -19,6 +19,13 @@ context.globalThis=context;context.window=context;vm.createContext(context);
 vm.runInContext(fs.readFileSync("public/vendor/planck.min.js","utf8"),context,{filename:"planck.min.js"});
 vm.runInContext(fs.readFileSync("public/js/engine.js","utf8"),context,{filename:"engine.js"});
 assert(context.planck?.World&&context.BasketEngine?.Game,"El bundle del navegador no carga");
+
+// Si ambos equipos abren el juego desde una IP privada, el cliente debe usar
+// automáticamente ese servidor de la misma WiFi sin editar config.js.
+const lanContext={console,location:{hostname:"192.168.1.20",protocol:"http:",origin:"http://192.168.1.20:3000"}};
+lanContext.window=lanContext;lanContext.BASKET_CONFIG={SERVER_URL:""};vm.createContext(lanContext);
+vm.runInContext(fs.readFileSync("public/js/network.js","utf8"),lanContext,{filename:"network.js"});
+assert(new lanContext.BasketNetwork().getUrl()===lanContext.location.origin,"El cliente no detectó automáticamente el servidor LAN");
 
 // La pelota cruza ambos aros hacia abajo y la arcoíris suma dos puntos.
 for(const [ball,points] of [["normal",1],["rainbow",2]]){
@@ -41,14 +48,17 @@ for(const [ball,points] of [["normal",1],["rainbow",2]]){
   const staticKinds=new Set(game.staticBodies.map(body=>body.getUserData()));assert(staticKinds.has("board")&&staticKinds.has("post")&&staticKinds.has("rim"),"Faltan colisiones físicas del tablero, poste o aro");
 }
 
-// Los cuatro personajes agarran únicamente por proximidad física, mantienen la pelota
-// mientras la tecla está apretada y la sueltan al levantarla.
+// Los cuatro personajes agarran por cercanía únicamente mientras se mantiene
+// el control, hacen snap a la mano y lanzan al soltar la tecla.
 for(const team of [0,1])for(const index of [0,1]){
   const game=fixedGame(`catch-${team}-${index}`);
   const player=game.players.find(p=>p.team===team&&p.index===index),hand=game.handPoint(player);
-  const contactPoint=planck.Vec2(hand.x+player.attackDir*.55,hand.y),before=contactPoint.clone();game.ball.setTransform(contactPoint,0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.setControl(team,true);
-  assert(game.holder?.id===player.id&&game.holdJoint,`El jugador ${team}/${index} no agarró por contacto`);
-  assert(planck.Vec2.distance(before,game.ball.getPosition())<.001,`El agarre ${team}/${index} teletransportó la pelota`);
+  const contactPoint=planck.Vec2(hand.x+player.attackDir*.72,hand.y),before=contactPoint.clone();game.ball.setTransform(contactPoint,0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
+  assert(!game.holder&&!game.holdJoint,`El jugador ${team}/${index} agarró sin mantener la tecla`);
+  game.setControl(team,true);
+  assert(game.holder?.id===player.id&&game.holdJoint,`El jugador ${team}/${index} no agarró al mantener la tecla`);
+  assert(planck.Vec2.distance(before,game.ball.getPosition())>.05,`El agarre ${team}/${index} no acercó la pelota al brazo`);
+  assert(planck.Vec2.distance(game.handPoint(player),game.ball.getPosition())<.2,`El snap ${team}/${index} no terminó en la mano`);
   for(let i=0;i<26;i++)game.step(1/60);
   const heldDistance=planck.Vec2.distance(game.handPoint(player),game.ball.getPosition());
   assert(heldDistance<.8,`La pelota no quedó sujeta en ${team}/${index}: ${heldDistance}`);
@@ -56,6 +66,27 @@ for(const team of [0,1])for(const index of [0,1]){
   assert(!game.holder&&!game.holdJoint,`El jugador ${team}/${index} no soltó al levantar la tecla`);
   const released=game.ball.getLinearVelocity();
   assert(released.length()>.35,`El lanzamiento ${team}/${index} no heredó velocidad física`);
+  assert(released.y>0,`El lanzamiento ${team}/${index} salió hacia el piso: ${released.y.toFixed(2)}`);
+}
+
+// Si la pelota llega durante un salto, soltar la tecla debe lanzarla.
+{
+  const game=fixedGame("catch-on-held-input"),player=game.players[0];
+  game.setControl(0,true);game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
+  assert(game.holder===player,"No atrapó la pelota durante el salto");
+  game.setControl(0,false);
+  assert(!game.holder&&!game.holdJoint,"Soltar la tecla no lanzó la pelota");
+}
+
+// La extrapolación online usa velocidades lineales y angulares, pero nunca
+// predice más de 50 ms para evitar saltos largos en una conexión mala.
+{
+  const game=fixedGame("network-extrapolation"),state=game.snapshot();
+  state.ball.vx=120;state.ball.vy=-30;state.ball.omega=2;
+  const future=extrapolateSnapshot(state,.2);
+  approx(future.time,state.time+.05,.0001,"La extrapolación superó el límite temporal");
+  approx(future.ball.x,state.ball.x+6,.0001,"La extrapolación horizontal de la pelota falló");
+  approx(future.ball.y,state.ball.y-1.5,.0001,"La extrapolación vertical de la pelota falló");
 }
 
 // El salto tiene altura útil, pero ninguna pieza puede salir volando fuera de la cancha.
@@ -136,5 +167,6 @@ const ids=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
 const used=[...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map(m=>m[1]);
 const missing=[...new Set(used.filter(id=>!ids.has(id)))];
 assert(!missing.length,`Faltan IDs en el HTML: ${missing.join(", ")}`);
+for(const code of["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowLeft","ArrowDown","ArrowRight"])assert(app.includes(code),`Falta el control alternativo ${code}`);
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,steals:true,outReturn:true,jump:"tilt-based",catch:"contact",aimAssist:false});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,steals:true,outReturn:true,jump:"tilt-based",catch:"hold-release",onlineExtrapolation:true,aimAssist:false});

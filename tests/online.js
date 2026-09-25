@@ -29,11 +29,12 @@ async function run(){
   const rejected=waitEvent(third,"error-message");third.emit("join-private",{code,profile:{name:"TERCERO"}});await rejected;
 
   const states={a:[],b:[]};a.on("snapshot",s=>states.a.push(s));b.on("snapshot",s=>states.b.push(s));
-  let down=false;
-  const timer=setInterval(()=>{down=!down;a.emit("input",{action:"control",down});setTimeout(()=>b.emit("input",{action:"control",down}),70);},260);
+  let down=false,inputSeqA=0,inputSeqB=0;
+  const timer=setInterval(()=>{down=!down;a.emit("input",{action:"control",down,seq:++inputSeqA});setTimeout(()=>b.emit("input",{action:"control",down,seq:++inputSeqB}),70);},260);
   await new Promise(resolve=>setTimeout(resolve,5400));clearInterval(timer);
-  a.emit("input",{action:"control",down:false});b.emit("input",{action:"control",down:false});
-  if(states.a.length<120||states.b.length<120)throw new Error(`Snapshots insuficientes: ${states.a.length}/${states.b.length}`);
+  a.emit("input",{action:"control",down:false,seq:++inputSeqA});b.emit("input",{action:"control",down:false,seq:++inputSeqB});
+  await new Promise(resolve=>setTimeout(resolve,120));
+  if(states.a.length<220||states.b.length<220)throw new Error(`Snapshots insuficientes para 60 Hz: ${states.a.length}/${states.b.length}`);
   const sa=states.a.at(-1),sb=states.b.at(-1),early=states.a[10];
   const sync=Math.abs(sa.ball.x-sb.ball.x)+Math.abs(sa.ball.y-sb.ball.y)+Math.abs(sa.players[0].x-sb.players[0].x);
   const motion=Math.abs(sa.ball.x-early.ball.x)+Math.abs(sa.ball.y-early.ball.y)+Math.abs(sa.players[0].x-early.players[0].x);
@@ -42,6 +43,10 @@ async function run(){
   if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==1||p.legs.length!==2))throw new Error("Personajes incorrectos en snapshot");
   if(!states.a.some(s=>s.players.some(p=>p.control)))throw new Error("El servidor no registró el control mantenido");
   if(states.a.some((s,i)=>i&&s.net.seq<=states.a[i-1].net.seq))throw new Error("La secuencia de snapshots no es creciente");
+  if(sa.net?.hz!==60)throw new Error("El servidor no anunció snapshots a 60 Hz");
+  if((sa.net?.ack?.[0]||0)<inputSeqA-1||(sb.net?.ack?.[1]||0)<inputSeqB-1)throw new Error("Faltan confirmaciones de entradas online");
+  if(!Number.isFinite(sa.players[0].body.vx+sa.players[0].body.vy+sa.players[0].body.omega))throw new Error("El snapshot no incluye velocidades para suavizado");
+  const lan=await fetch(`${url}/api/lan`).then(res=>res.json());if(!Array.isArray(lan.urls))throw new Error("El servidor no publicó información LAN");
 
   a.close();b.close();third.close();
   const c=connect(),d=connect();await Promise.all([waitEvent(c,"connect"),waitEvent(d,"connect")]);
@@ -51,7 +56,7 @@ async function run(){
   const publicC=waitEvent(c,"match-start"),publicD=waitEvent(d,"match-start");
   d.emit("join-public-room",{roomId:publicRoom.roomId,profile:{name:"PUBLICO 2"}});
   await Promise.all([publicC,publicD]);
-  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],syncDelta:sync,motion:Math.round(motion),heldInput:true,publicBrowser:true})}`);
+  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],snapshotHz:60,syncDelta:sync,motion:Math.round(motion),inputAck:true,lanReady:true,publicBrowser:true})}`);
 }
 
 server.stderr.on("data",data=>process.stderr.write(data));
