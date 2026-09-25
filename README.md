@@ -18,9 +18,11 @@ Cada jugador controla sus dos personajes con una sola tecla, como en Basket Rand
 - En 2P local: equipo izquierdo con `WASD`; equipo derecho con las flechas.
 - En celular: boton tactil grande.
 
-La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida y hace un pequeño ajuste hasta la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
+La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida: el alcance es generoso y hace un snap exacto a la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
 
-Los personajes usan torso, cabeza, brazo y dos piernas físicas. Un sistema de torque y centro de masa bajo los devuelve gradualmente a la vertical cuando quedan libres; no se recolocan por teletransporte. El salto toma la inclinación y el momento actual del cuerpo, la pelota puede robarse por contacto, y las salidas tienen una reposición animada.
+Los personajes usan torso, cabeza, brazo y dos piernas físicas. Los brazos se balancean también en reposo y el salto reparte el impulso entre todas las piezas para que el cuerpo se incline de manera visible. Un sistema de torque y centro de masa bajo los devuelve gradualmente a la vertical cuando quedan libres; no se recolocan por teletransporte. En el mapa de nieve la fricción y la amortiguación bajan de verdad para que los jugadores patinen mucho más. La pelota puede robarse por contacto y las salidas tienen una reposición animada.
+
+Si una pelota queda atrapada debajo de un jugador, el apoyo sobre ella cuenta para saltar y al mantener el control se recupera directamente en la mano. La pelota liviana cae más lento y rebota más, la pesada cae más rápido y casi no rebota, y la multicolor suma dos puntos. Cada canasta muestra durante dos segundos una de las reacciones visuales incluidas, elegida al azar y con movimiento aleatorio.
 
 ## Probar todo localmente
 

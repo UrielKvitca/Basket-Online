@@ -40,6 +40,28 @@ for(const [ball,points] of [["normal",1],["rainbow",2]]){
   }
 }
 
+// Cada tipo de pelota conserva su comportamiento: liviana cae lento y rebota
+// mucho, pesada cae rápido y casi no rebota, y la multicolor multiplica el gol.
+function ballMotion(type){
+  const game=fixedGame(`ball-motion-${type}`,{ball:type}),radius=game.ballCfg.radius;
+  game.ball.setTransform(planck.Vec2(12,game.groundY+4),0);game.ball.setLinearVelocity(planck.Vec2(0,0));
+  let fallSpeed=0,reboundSpeed=0,touched=false;
+  for(let frame=0;frame<180;frame++){
+    game.step(1/60);const position=game.ball.getPosition(),vy=game.ball.getLinearVelocity().y;
+    if(position.y<=game.groundY+radius+.12)touched=true;
+    if(touched)reboundSpeed=Math.max(reboundSpeed,vy);else fallSpeed=Math.min(fallSpeed,vy);
+  }
+  return{fallSpeed,reboundSpeed,mass:game.ball.getMass(),radius,points:game.ballCfg.points};
+}
+{
+  const light=ballMotion("light"),normal=ballMotion("normal"),heavy=ballMotion("heavy"),double=ballMotion("rainbow");
+  assert(light.mass<normal.mass&&normal.mass<heavy.mass,"Los pesos de las pelotas no respetan liviana/normal/pesada");
+  assert(light.radius<normal.radius&&normal.radius<heavy.radius,"Los tamaños de las pelotas no respetan liviana/normal/pesada");
+  assert(light.fallSpeed>normal.fallSpeed&&normal.fallSpeed>heavy.fallSpeed,"Las velocidades de caída de las pelotas son incorrectas");
+  assert(light.reboundSpeed>normal.reboundSpeed*1.2&&normal.reboundSpeed>heavy.reboundSpeed*3,"Los rebotes liviano/normal/pesado son incorrectos");
+  assert(double.points===2,"La pelota multiplicadora no vale dos puntos");
+}
+
 // Pasar por fuera del borde real del aro no debe sumar.
 {
   const game=fixedGame("score-outside"),hoop=game.hoops[0],x=Math.min(hoop.world.a,hoop.world.b)-.12;
@@ -69,6 +91,42 @@ for(const team of [0,1])for(const index of [0,1]){
   assert(released.y>0,`El lanzamiento ${team}/${index} salió hacia el piso: ${released.y.toFixed(2)}`);
 }
 
+// El imán de agarre es generoso a corta distancia, pero no trae la pelota
+// desde cualquier parte de la cancha. El snap inicial termina exactamente en la mano.
+{
+  const near=fixedGame("catch-generous"),player=near.players[0],hand=near.handPoint(player);
+  near.ball.setTransform(planck.Vec2(hand.x+1.35,hand.y),0);near.ball.setLinearVelocity(planck.Vec2(0,0));near.setControl(0,true);
+  assert(near.holder===player,"La pelota cercana no se teletransportó a la mano");
+  assert(planck.Vec2.distance(near.handPoint(player),near.ball.getPosition())<.02,"El snap cercano no terminó exactamente en la mano");
+
+  const far=fixedGame("catch-not-global"),farPlayer=far.players[0],farHand=far.handPoint(farPlayer);
+  far.ball.setTransform(planck.Vec2(farHand.x+1.6,farHand.y),0);far.ball.setLinearVelocity(planck.Vec2(0,0));far.setControl(0,true);
+  assert(!far.holder,"El agarre atrajo una pelota demasiado lejana");
+}
+
+// Si el jugador queda apoyado sobre la pelota, la tecla todavía debe permitir
+// saltar y recuperar la pelota en la mano en el mismo movimiento.
+{
+  const game=fixedGame("ball-under-player"),player=game.players[0],radius=game.ballCfg.radius;
+  game.ball.setTransform(planck.Vec2(player.body.getPosition().x,game.groundY+radius+.02),0);game.ball.setLinearVelocity(planck.Vec2(0,0));
+  const feet=Math.min(...player.legs.map(leg=>leg.getWorldPoint(planck.Vec2(0,-player.legLen/2-.1)).y)),target=game.ball.getPosition().y+radius+.02,shift=target-feet;
+  for(const part of[player.body,player.head,player.arm,...player.legs]){const position=part.getPosition();part.setTransform(planck.Vec2(position.x,position.y+shift),part.getAngle());part.setLinearVelocity(planck.Vec2(0,0));}
+  assert(game.ballTrappedBy(player)&&game.isGrounded(player),"La pelota debajo del jugador no fue reconocida como apoyo");
+  const startY=player.body.getPosition().y;game.setControl(0,true);
+  assert(game.holder===player,"El jugador parado sobre la pelota no pudo recuperarla");
+  for(let frame=0;frame<8;frame++)game.step(1/60);
+  assert(player.body.getPosition().y>startY+.25,"El jugador parado sobre la pelota no pudo saltar");
+  assert(planck.Vec2.distance(game.handPoint(player),game.ball.getPosition())<.08,"La pelota destrabada no quedó en la mano");
+}
+
+// Incluso sin pulsar, el brazo debe conservar un balanceo visible y físico.
+{
+  const game=fixedGame("arm-sway"),player=game.players[0],angles=[];
+  for(let frame=0;frame<360;frame++){game.step(1/60);if(frame>60)angles.push(player.armJoint.getJointAngle());}
+  const range=Math.max(...angles)-Math.min(...angles);
+  assert(range>.35,`El brazo quedó demasiado rígido: ${range.toFixed(3)} rad`);
+}
+
 // Si la pelota llega durante un salto, soltar la tecla debe lanzarla.
 {
   const game=fixedGame("catch-on-held-input"),player=game.players[0];
@@ -92,11 +150,24 @@ for(const team of [0,1])for(const index of [0,1]){
 // El salto tiene altura útil, pero ninguna pieza puede salir volando fuera de la cancha.
 {
   const game=fixedGame("jump-height"),startY=game.snapshot().players[0].body.y;
-  game.setControl(0,true);let apex=startY;
-  for(let i=0;i<120;i++){if(i===28)game.setControl(0,false);game.step(1/60);apex=Math.min(apex,game.snapshot().players[0].body.y);}
+  game.setControl(0,true);let apex=startY,maxAngle=0;
+  for(let i=0;i<120;i++){if(i===28)game.setControl(0,false);game.step(1/60);apex=Math.min(apex,game.snapshot().players[0].body.y);maxAngle=Math.max(maxAngle,Math.abs(game.players[0].body.getAngle()));}
   const height=startY-apex;
   assert(height>125,`El salto sigue siendo demasiado bajo: ${Math.round(height)} px`);
   assert(height<330,`El jugador salió volando: ${Math.round(height)} px`);
+  assert(maxAngle>.45,`El salto no tiene balanceo visible: ${maxAngle.toFixed(3)} rad`);
+}
+
+// La nieve/hielo conserva el movimiento y recorre mucho más que el piso normal.
+function slideDistance(map){
+  const game=fixedGame(`slide-${map}`,{map}),player=game.players[0],start=player.body.getPosition().x;
+  for(const part of[player.body,player.head,player.arm,...player.legs])part.setLinearVelocity(planck.Vec2(3,0));
+  for(let frame=0;frame<120;frame++)game.step(1/60);
+  return Math.abs(player.body.getPosition().x-start);
+}
+{
+  const street=slideDistance("street"),snow=slideDistance("snow");
+  assert(snow>street*3,`El hielo no desliza claramente más: calle ${street.toFixed(2)} m / hielo ${snow.toFixed(2)} m`);
 }
 
 // Cambiar la altura del aro no cambia el vector de lanzamiento: no existe auto-aim.
@@ -168,5 +239,8 @@ const used=[...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map(m=>m[1]);
 const missing=[...new Set(used.filter(id=>!ids.has(id)))];
 assert(!missing.length,`Faltan IDs en el HTML: ${missing.join(", ")}`);
 for(const code of["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowLeft","ArrowDown","ArrowRight"])assert(app.includes(code),`Falta el control alternativo ${code}`);
+const reactions=fs.readdirSync("public/assets/goal-reactions").filter(name=>/^goal-\d\d\.png$/.test(name));
+assert(reactions.length===14,"No se incluyeron las 14 reacciones de gol únicas");
+assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,steals:true,outReturn:true,jump:"tilt-based",catch:"hold-release",onlineExtrapolation:true,aimAssist:false});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:true,iceSliding:true,ballTypes:true,ballUnstuck:true,goalReactions:reactions.length,steals:true,outReturn:true,jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:true,aimAssist:false});
