@@ -18,13 +18,13 @@ Cada jugador controla sus dos personajes con una sola tecla, como en Basket Rand
 - En 2P local: equipo izquierdo con `WASD`; equipo derecho con las flechas.
 - En celular: boton tactil grande.
 
-La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida: el alcance es generoso y hace un snap exacto a la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
+La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida: el alcance es generoso, también cubre una zona corta detrás del cuerpo y hace un snap exacto a la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
 
 El lanzamiento tiene asistencia parcial: conserva el movimiento físico del personaje, pero lo mezcla con una trayectoria hacia el aro rival y garantiza una fuerza mínima. La altura del aro, la carga del tiro y la gravedad propia de cada pelota modifican la parábola, sin convertir cada lanzamiento en una canasta automática.
 
-Los personajes usan torso, cabeza, brazo y dos piernas físicas. Los brazos se balancean también en reposo y el salto reparte el impulso entre todas las piezas para que el cuerpo se incline de manera visible. Un sistema de torque y centro de masa bajo los devuelve gradualmente a la vertical cuando quedan libres; no se recolocan por teletransporte. En el mapa de nieve la fricción y la amortiguación bajan de verdad para que los jugadores patinen mucho más. La pelota puede robarse por contacto y las salidas tienen una reposición animada.
+Los personajes usan torso, cabeza, brazo y dos piernas físicas. Los brazos se balancean rápido y con recorrido hacia delante y atrás; el salto reparte un impulso mayor entre todas las piezas para que el cuerpo se incline de manera visible. Un sistema de torque y centro de masa bajo los devuelve gradualmente a la vertical cuando quedan libres; no se recolocan por teletransporte. En el mapa de nieve la fricción y la amortiguación bajan de verdad para que los jugadores patinen mucho más. La pelota puede robarse por contacto. Si se pierde detrás del tablero o sale de la cancha, se anima hacia afuera y comienza sólo una ronda nueva, conservando el marcador del partido.
 
-Si una pelota queda atrapada debajo de un jugador, el apoyo sobre ella cuenta para saltar y al mantener el control se recupera directamente en la mano. La pelota liviana cae más lento y rebota más, la pesada cae más rápido y casi no rebota, y la multicolor suma dos puntos. Cada canasta muestra durante dos segundos una de las reacciones visuales incluidas, elegida al azar y con movimiento aleatorio.
+Si una pelota queda atrapada debajo de un jugador, el apoyo sobre ella cuenta para saltar y al mantener el control se recupera directamente en la mano. También se puede saltar cuando el apoyo es otro jugador, para que las pilas de cuerpos no bloqueen al de arriba. La pelota liviana cae más lento y rebota más, la pesada cae más rápido y casi no rebota, y la multicolor suma dos puntos. Cada canasta muestra durante dos segundos una de las 44 reacciones visuales incluidas, elegida al azar y con movimiento aleatorio. Las fuentes de las 30 reacciones web agregadas están documentadas en `MEME_SOURCES.md`.
 
 ## Probar todo localmente
 
@@ -70,10 +70,10 @@ El servidor tambien sirve el cliente, por lo que la URL de Render permite probar
 - Perfil, monedas, compras y espera del torneo se guardan en `localStorage`.
 - Las salas tienen un maximo estricto de 2 conexiones. Las públicas muestran anfitrión, rango y ocupación; las privadas no aparecen en el navegador.
 - El servidor es autoritativo: recibe pulsaciones y transmite el estado fisico del partido a ambos jugadores por igual.
-- Los snapshots salen a 60 Hz, llevan confirmación de la última entrada procesada y son descartables: una conexión lenta no acumula estados viejos. El cliente usa interpolación adaptativa de 22 a 55 ms y extrapolación física corta para evitar congelamientos entre paquetes.
+- Los snapshots salen a 60 Hz, llevan confirmación de la última entrada procesada y son descartables: una conexión lenta no acumula estados viejos. El cliente usa un búfer adaptativo de 32 a 70 ms, limita la extrapolación visible a 18 ms y predice localmente el inicio del salto hasta recibir la confirmación del servidor.
 - La pantalla online muestra la latencia aproximada al servidor.
 - La cancha vuelve a ocupar toda la pantalla disponible, sin bordes ni reducción visible del área de juego.
 - Navegador y servidor usan el mismo motor Planck/Box2D y los mismos modificadores.
 - El juego se renderiza primero en una superficie de 320 x 180 y se escala sin suavizado para que personajes, pelota, canchas y efectos sean pixel art real.
-- Los escenarios, uniformes e interfaz son originales y estan dibujados por el propio juego; no se incluyen assets copiados.
+- Los escenarios, uniformes e interfaz son originales y están dibujados por el propio juego. Las reacciones de gol aportadas por el usuario y las plantillas web se mantienen separadas en `public/assets/goal-reactions`.
 - La licencia de Planck.js está incluida en `THIRD_PARTY_NOTICES.md`.

@@ -104,6 +104,15 @@ for(const team of [0,1])for(const index of [0,1]){
   assert(!far.holder,"El agarre atrajo una pelota demasiado lejana");
 }
 
+// El brazo puede rescatar una pelota que quedó detrás del cuerpo. La prioridad
+// sigue siendo del jugador realmente más cercano, no de un compañero lejano.
+{
+  const game=fixedGame("catch-behind"),player=game.players[0],body=player.body.getPosition();
+  game.ball.setTransform(planck.Vec2(body.x-player.attackDir*1.05,body.y-.05),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.setControl(0,true);
+  assert(game.holder===player,"El brazo no alcanzó la pelota que quedó detrás del jugador");
+  assert(planck.Vec2.distance(game.handPoint(player),game.ball.getPosition())<.02,"El rescate trasero no llevó la pelota a la mano");
+}
+
 // Si el jugador queda apoyado sobre la pelota, la tecla todavía debe permitir
 // saltar y recuperar la pelota en la mano en el mismo movimiento.
 {
@@ -124,7 +133,20 @@ for(const team of [0,1])for(const index of [0,1]){
   const game=fixedGame("arm-sway"),player=game.players[0],angles=[];
   for(let frame=0;frame<360;frame++){game.step(1/60);if(frame>60)angles.push(player.armJoint.getJointAngle());}
   const range=Math.max(...angles)-Math.min(...angles);
-  assert(range>.35,`El brazo quedó demasiado rígido: ${range.toFixed(3)} rad`);
+  assert(range>1,`El brazo quedó demasiado rígido: ${range.toFixed(3)} rad`);
+}
+
+// Estar parado sobre otro jugador también cuenta como apoyo para saltar: así
+// una pila de cuerpos no deja bloqueado al personaje superior.
+{
+  const game=fixedGame("player-under-player"),lower=game.players[0],upper=game.players[2],top=lower.head.getPosition().y+lower.headR;
+  const feet=upper.legs.map(leg=>leg.getWorldPoint(planck.Vec2(0,-upper.legLen/2-.12))),averageFeet=feet.reduce((sum,point)=>sum+point.y,0)/feet.length,dx=lower.body.getPosition().x-upper.body.getPosition().x,dy=top+.08-averageFeet;
+  for(const part of[upper.body,upper.head,upper.arm,...upper.legs]){const position=part.getPosition();part.setTransform(planck.Vec2(position.x+dx,position.y+dy),part.getAngle());part.setLinearVelocity(planck.Vec2(0,0));}
+  assert(game.playerSupport(upper)&&game.isGrounded(upper),"El jugador inferior no fue reconocido como apoyo");
+  const startY=upper.body.getPosition().y;game.setControl(1,true);
+  assert(upper.body.getLinearVelocity().y>10,"El jugador superior no recibió impulso de salto");
+  for(let frame=0;frame<6;frame++)game.step(1/60);
+  assert(upper.body.getPosition().y>startY+.35,"El jugador superior siguió bloqueado sobre el rival");
 }
 
 // Si la pelota llega durante un salto, soltar la tecla debe lanzarla.
@@ -215,12 +237,15 @@ function tiltedJump(angle){const game=fixedGame(`tilt-${angle}`),player=game.pla
   assert(game.holder===rival,"El rival tocó la pelota pero no pudo robarla");
 }
 
-// Una pelota afuera muestra una reposición y vuelve desde arriba sin reiniciar el marcador.
+// Si la pelota se pierde detrás del tablero, sale animada de la cancha y sólo
+// se reinicia la ronda: el marcador del partido queda intacto.
 {
-  const game=fixedGame("out-return");game.score=[2,3];game.ball.setTransform(planck.Vec2(constants.W/100,20),0);game.step(1/60);
+  const game=fixedGame("out-return"),hoop=game.hoops[0],round=game.round;game.score=[2,3];game.ball.setTransform(planck.Vec2(hoop.world.boardX-.3,hoop.world.rimY),0);game.step(1/60);
   assert(game.phase==="out","La salida no inició la animación de reposición");
-  for(let i=0;i<60;i++)game.step(1/60);
-  const state=game.snapshot();assert(game.phase==="play","La reposición no devolvió el juego a fase activa");assert(state.score[0]===2&&state.score[1]===3,"La reposición reinició el marcador");assert(Math.abs(state.ball.x-constants.W/2)<2,"La pelota no volvió por el centro");
+  const startX=game.ball.getPosition().x;for(let i=0;i<24;i++)game.step(1/60);
+  assert(game.ball.getPosition().x<startX-.4,"La pelota perdida no se animó hacia afuera");
+  for(let i=0;i<110;i++)game.step(1/60);
+  const state=game.snapshot();assert(game.phase==="play","La reposición no devolvió el juego a fase activa");assert(state.score[0]===2&&state.score[1]===3,"La reposición reinició el marcador");assert(game.round===round+1,"La salida no inició una ronda nueva");assert(Math.abs(state.ball.x-constants.W/2)<2,"La pelota no volvió por el centro");
 }
 
 // Todas las variantes auténticas permanecen finitas con controles mantenidos/soltados.
@@ -245,8 +270,9 @@ const used=[...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map(m=>m[1]);
 const missing=[...new Set(used.filter(id=>!ids.has(id)))];
 assert(!missing.length,`Faltan IDs en el HTML: ${missing.join(", ")}`);
 for(const code of["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowLeft","ArrowDown","ArrowRight"])assert(app.includes(code),`Falta el control alternativo ${code}`);
-const reactions=fs.readdirSync("public/assets/goal-reactions").filter(name=>/^goal-\d\d\.png$/.test(name));
-assert(reactions.length===14,"No se incluyeron las 14 reacciones de gol únicas");
+const reactions=fs.readdirSync("public/assets/goal-reactions").filter(name=>/^goal-\d\d\.(?:png|webp)$/.test(name));
+assert(reactions.length===44,"No se incluyeron las 44 reacciones de gol");
 assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
+assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.018,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:true,iceSliding:true,ballTypes:true,ballUnstuck:true,goalReactions:reactions.length,steals:true,outReturn:true,jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:true,aimAssist:"partial-hoop-directed"});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:"18ms-render-cap",aimAssist:"partial-hoop-directed"});
