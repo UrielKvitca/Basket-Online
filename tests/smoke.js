@@ -170,17 +170,23 @@ function slideDistance(map){
   assert(snow>street*3,`El hielo no desliza claramente más: calle ${street.toFixed(2)} m / hielo ${snow.toFixed(2)} m`);
 }
 
-// Cambiar la altura del aro no cambia el vector de lanzamiento: no existe auto-aim.
-function releaseVector(hoop){
-  const game=fixedGame("no-aim",{hoop}),player=game.players[0],hand=game.handPoint(player);
-  game.setControl(0,true);game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
-  for(let i=0;i<22;i++)game.step(1/60);game.setControl(0,false);
+// La ayuda de tiro es parcial: respeta la física del brazo, pero orienta la
+// pelota con fuerza hacia el aro rival y levanta más el tiro si el aro es alto.
+function releaseVector(hoop,ball="normal",team=0){
+  const game=fixedGame(`assisted-${hoop}-${ball}-${team}`,{hoop,ball}),player=game.players.find(candidate=>candidate.team===team);
+  game.setControl(team,true);game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
+  for(let i=0;i<22;i++)game.step(1/60);game.setControl(team,false);
   return game.ball.getLinearVelocity();
 }
 {
   const normal=releaseVector("normal"),high=releaseVector("high");
-  approx(normal.x,high.x,.0001,"El aro está alterando el tiro horizontal");
-  approx(normal.y,high.y,.0001,"El aro está alterando el tiro vertical");
+  assert(normal.x>7,`El tiro izquierdo no salió con fuerza hacia el aro rival: ${normal.x.toFixed(2)}`);
+  assert(high.y>normal.y+.35,`El aro alto no recibió una parábola más elevada: ${normal.y.toFixed(2)} / ${high.y.toFixed(2)}`);
+}
+for(const ball of ["normal","light","heavy","rainbow"])for(const team of [0,1]){
+  const velocity=releaseVector("normal",ball,team),toward=team===0?velocity.x:-velocity.x;
+  assert(toward>7,`El tiro ${ball} del equipo ${team} no salió con fuerza hacia el aro: ${velocity.x.toFixed(2)}`);
+  assert(velocity.y>5,`El tiro ${ball} del equipo ${team} no tuvo altura suficiente: ${velocity.y.toFixed(2)}`);
 }
 
 // El cuerpo se autoendereza mediante torque físico y centro de masa bajo.
@@ -243,4 +249,4 @@ const reactions=fs.readdirSync("public/assets/goal-reactions").filter(name=>/^go
 assert(reactions.length===14,"No se incluyeron las 14 reacciones de gol únicas");
 assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:true,iceSliding:true,ballTypes:true,ballUnstuck:true,goalReactions:reactions.length,steals:true,outReturn:true,jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:true,aimAssist:false});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:true,iceSliding:true,ballTypes:true,ballUnstuck:true,goalReactions:reactions.length,steals:true,outReturn:true,jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:true,aimAssist:"partial-hoop-directed"});
