@@ -7,8 +7,8 @@ Fecha: 2026-09-17
 - Contrato HTML/JavaScript: referencias directas de la interfaz sin IDs faltantes.
 - Las 384 combinaciones de pelota, cuerpo, aro y mapa bajo entradas mantenidas y soltadas.
 - Límite vertical de los cuatro ragdolls, sin `NaN`, infinitos ni personajes que salgan volando.
-- Agarre únicamente por contacto real de mano/antebrazo, unión mientras la tecla sigue presionada y liberación al soltarla.
-- Robo de pelota por contacto del brazo rival y lanzamiento según postura, carga y velocidad física, sin apuntar a coordenadas del aro.
+- Agarre magnético generoso por mano/antebrazo, recuperación si queda debajo del jugador, alcance corto hacia atrás, unión mientras la tecla sigue presionada y liberación al soltarla.
+- Robo de pelota por contacto del brazo rival y lanzamiento según la dirección del brazo, postura, carga y velocidad física, con guía parcial hacia el aro.
 - Salto superior a 125 px sin superar el límite vertical seguro.
 - Comparación del mismo lanzamiento con aros a distinta altura para comprobar que no existe apuntado automático.
 - Autoequilibrio desde una caída casi horizontal, movimiento horizontal según inclinación y dos piernas físicas por personaje.
@@ -19,6 +19,8 @@ Fecha: 2026-09-17
 - Sala privada con código, dos clientes, rechazo del tercero y snapshots sincronizados.
 - Creación, listado y entrada a una sala pública visible desde otro cliente Socket.IO.
 - Snapshots autoritativos a 30 Hz, con secuencia creciente, cuatro personajes articulados, una pelota y estado de tecla mantenida.
+- Conexión alternativa por HTTP polling, confirmación inmediata de entrada, cadencia suficiente y sincronización exacta entre clientes.
+- Integridad de las 44 reacciones de gol y existencia de todos los recursos locales referenciados por la interfaz.
 
 ## Ejecutar todo
 

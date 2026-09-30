@@ -307,7 +307,10 @@ assert(!missing.length,`Faltan IDs en el HTML: ${missing.join(", ")}`);
 for(const code of["KeyW","KeyA","KeyS","KeyD","ArrowUp","ArrowLeft","ArrowDown","ArrowRight"])assert(app.includes(code),`Falta el control alternativo ${code}`);
 const reactions=fs.readdirSync("public/assets/goal-reactions").filter(name=>/^goal-\d\d\.(?:png|webp)$/.test(name));
 assert(reactions.length===44,"No se incluyeron las 44 reacciones de gol");
+for(const name of reactions){const file=`public/assets/goal-reactions/${name}`,data=fs.readFileSync(file),png=data.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])),webp=data.subarray(0,4).toString()==="RIFF"&&data.subarray(8,12).toString()==="WEBP";assert(data.length>1024&&(png||webp),`La reacción ${name} está vacía o dañada`);}
+const localResources=[...html.matchAll(/\b(?:src|href)="([^"]+)"/g)].map(match=>match[1].split(/[?#]/)[0]).filter(ref=>ref&&!/^(?:https?:|data:|#)/.test(ref));
+for(const ref of localResources)assert(fs.existsSync(`public/${ref.replace(/^\.\//,"")}`),`Falta el recurso local ${ref}`);
 assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
-assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.018,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
+assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.012,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,rimUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",shotDirection:"arm-led-up-or-down",onlineExtrapolation:"18ms-render-cap",aimAssist:"partial-hoop-directed"});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,rimUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",shotDirection:"arm-led-up-or-down",onlineExtrapolation:"12ms-render-cap",aimAssist:"partial-hoop-directed"});

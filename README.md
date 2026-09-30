@@ -70,7 +70,7 @@ El servidor tambien sirve el cliente, por lo que la URL de Render permite probar
 - Perfil, monedas, compras y espera del torneo se guardan en `localStorage`.
 - Las salas tienen un maximo estricto de 2 conexiones. Las públicas muestran anfitrión, rango y ocupación; las privadas no aparecen en el navegador.
 - El servidor es autoritativo: recibe pulsaciones y transmite el estado fisico del partido a ambos jugadores por igual.
-- Los snapshots salen a 60 Hz, llevan confirmación de la última entrada procesada y son descartables: una conexión lenta no acumula estados viejos. El cliente usa un búfer adaptativo de 32 a 70 ms, limita la extrapolación visible a 18 ms y predice localmente el inicio del salto hasta recibir la confirmación del servidor.
+- La física autoritativa corre a 60 Hz y transmite estados confiables a 30 Hz desde el mismo reloj, evitando duplicados, descartes masivos y ráfagas que trababan al invitado. El cliente interpola a los FPS de la pantalla con un búfer adaptativo de 40 a 95 ms, limita la extrapolación visible a 12 ms y mantiene la predicción local del salto hasta que el estado confirmado ya llegó visualmente, evitando el retroceso.
 - La pantalla online muestra la latencia aproximada al servidor.
 - La cancha vuelve a ocupar toda la pantalla disponible, sin bordes ni reducción visible del área de juego.
 - Navegador y servidor usan el mismo motor Planck/Box2D y los mismos modificadores.

@@ -11,7 +11,7 @@
       await this.loadClient(this.url);if(this.socket?.connected)return this.socket;
       if(!this.socket){
         this.socket=window.io(this.url,{transports:["websocket","polling"],upgrade:true,rememberUpgrade:true,reconnection:true,reconnectionAttempts:8,reconnectionDelay:500,reconnectionDelayMax:2500,timeout:10000});
-        const events=["connect","disconnect","status","room-created","public-room-created","public-rooms","queueing","match-found","match-start","snapshot","game-event","opponent-left","error-message"];
+        const events=["connect","disconnect","status","room-created","public-room-created","public-rooms","queueing","match-found","match-start","snapshot","input-ack","game-event","opponent-left","error-message"];
         for(const ev of events)this.socket.on(ev,data=>{if(ev==="connect"){this.connected=true;this.startLatencyProbe();}if(ev==="disconnect"){this.connected=false;this.stopLatencyProbe();}this.handlers[ev]?.(data);});
       }
       if(!this.socket.connected)this.socket.connect();
