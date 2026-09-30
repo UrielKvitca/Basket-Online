@@ -136,6 +136,18 @@ for(const team of [0,1])for(const index of [0,1]){
   assert(range>1,`El brazo quedó demasiado rígido: ${range.toFixed(3)} rad`);
 }
 
+// Después del agarre termina el balanceo amplio: el brazo se estabiliza y
+// apunta aproximadamente al aro rival para que el tiro no salga al azar.
+for(const team of[0,1]){
+  const game=fixedGame(`held-arm-aim-${team}`),player=game.players.find(candidate=>candidate.team===team&&candidate.index===0),hoop=game.hoops[team===0?1:0];
+  game.controls[team]=true;game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
+  assert(game.holder===player,`No se pudo preparar el agarre del equipo ${team}`);
+  const errors=[];for(let frame=0;frame<90;frame++){game.step(1/60);if(frame>54){const shoulder=game.shoulderPoint(player),target=planck.Vec2((hoop.world.a+hoop.world.b)/2,hoop.world.rimY+.28),desired=Math.atan2(target.x-shoulder.x,-(target.y-shoulder.y)),actual=player.arm.getAngle();errors.push(Math.abs(Math.atan2(Math.sin(desired-actual),Math.cos(desired-actual))));}}
+  const shoulder=game.shoulderPoint(player),hand=game.handPoint(player),target=planck.Vec2((hoop.world.a+hoop.world.b)/2,hoop.world.rimY+.28),arm=planck.Vec2(hand.x-shoulder.x,hand.y-shoulder.y),toward=planck.Vec2(target.x-shoulder.x,target.y-shoulder.y),alignment=planck.Vec2.dot(arm,toward)/(arm.length()*toward.length());
+  assert(alignment>.88,`El brazo del equipo ${team} no apuntó al aro: ${alignment.toFixed(3)}`);
+  assert(Math.max(...errors)<.58,`El brazo del equipo ${team} siguió agitándose con la pelota: ${Math.max(...errors).toFixed(3)} rad`);
+}
+
 // Estar parado sobre otro jugador también cuenta como apoyo para saltar: así
 // una pila de cuerpos no deja bloqueado al personaje superior.
 {

@@ -18,7 +18,7 @@ Cada jugador controla sus dos personajes con una sola tecla, como en Basket Rand
 - En 2P local: equipo izquierdo con `WASD`; equipo derecho con las flechas.
 - En celular: boton tactil grande.
 
-La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida: el alcance es generoso, también cubre una zona corta detrás del cuerpo y hace un snap exacto a la mano. Al soltar la tecla se lanza con la velocidad fisica del brazo y del cuerpo, como en el Basket Random original.
+La pelota se agarra cuando pasa cerca del brazo mientras la tecla está mantenida: el alcance es generoso, también cubre una zona corta detrás del cuerpo y hace un snap exacto a la mano. Mientras busca la pelota el brazo mantiene su balanceo amplio; después de agarrarla se estabiliza apuntando aproximadamente al aro rival. Al soltar la tecla combina una parte pequeña de la velocidad física con una trayectoria asistida, evitando que una sacudida residual la dispare hacia cualquier lado.
 
 El lanzamiento tiene asistencia parcial: conserva el movimiento físico del personaje, pero lo mezcla con una trayectoria hacia el aro rival y garantiza una fuerza mínima. La altura del aro, la carga del tiro y la gravedad propia de cada pelota modifican la parábola, sin convertir cada lanzamiento en una canasta automática.
 
