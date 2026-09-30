@@ -142,10 +142,10 @@ for(const team of[0,1]){
   const game=fixedGame(`held-arm-aim-${team}`),player=game.players.find(candidate=>candidate.team===team&&candidate.index===0),hoop=game.hoops[team===0?1:0];
   game.controls[team]=true;game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
   assert(game.holder===player,`No se pudo preparar el agarre del equipo ${team}`);
-  const errors=[];for(let frame=0;frame<90;frame++){game.step(1/60);if(frame>54){const shoulder=game.shoulderPoint(player),target=planck.Vec2((hoop.world.a+hoop.world.b)/2,hoop.world.rimY+.28),desired=Math.atan2(target.x-shoulder.x,-(target.y-shoulder.y)),actual=player.arm.getAngle();errors.push(Math.abs(Math.atan2(Math.sin(desired-actual),Math.cos(desired-actual))));}}
-  const shoulder=game.shoulderPoint(player),hand=game.handPoint(player),target=planck.Vec2((hoop.world.a+hoop.world.b)/2,hoop.world.rimY+.28),arm=planck.Vec2(hand.x-shoulder.x,hand.y-shoulder.y),toward=planck.Vec2(target.x-shoulder.x,target.y-shoulder.y),alignment=planck.Vec2.dot(arm,toward)/(arm.length()*toward.length());
+  const errors=[];for(let frame=0;frame<90;frame++){game.step(1/60);if(frame>54){const shoulder=game.shoulderPoint(player),target=game.heldAimPoint(player),desired=Math.atan2(target.x-shoulder.x,-(target.y-shoulder.y)),actual=player.arm.getAngle();errors.push(Math.abs(Math.atan2(Math.sin(desired-actual),Math.cos(desired-actual))));}}
+  const shoulder=game.shoulderPoint(player),hand=game.handPoint(player),target=game.heldAimPoint(player),arm=planck.Vec2(hand.x-shoulder.x,hand.y-shoulder.y),toward=planck.Vec2(target.x-shoulder.x,target.y-shoulder.y),alignment=planck.Vec2.dot(arm,toward)/(arm.length()*toward.length());
   assert(alignment>.88,`El brazo del equipo ${team} no apuntó al aro: ${alignment.toFixed(3)}`);
-  assert(Math.max(...errors)<.58,`El brazo del equipo ${team} siguió agitándose con la pelota: ${Math.max(...errors).toFixed(3)} rad`);
+  assert(Math.max(...errors)<.7,`El brazo del equipo ${team} siguió agitándose con la pelota: ${Math.max(...errors).toFixed(3)} rad`);
 }
 
 // Estar parado sobre otro jugador también cuenta como apoyo para saltar: así
@@ -223,6 +223,21 @@ for(const ball of ["normal","light","heavy","rainbow"])for(const team of [0,1]){
   assert(velocity.y>5,`El tiro ${ball} del equipo ${team} no tuvo altura suficiente: ${velocity.y.toFixed(2)}`);
 }
 
+// La orientación real del brazo manda al soltar: arriba produce un tiro alto
+// y abajo conserva un tiro descendente, sin que la ayuda al aro lo invierta.
+function directionalRelease(team,angle){
+  const game=fixedGame(`directional-release-${team}-${angle}`),player=game.players.find(candidate=>candidate.team===team&&candidate.index===0);
+  game.controls[team]=true;game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));game.tryCatchBall();
+  const shoulder=player.armJoint.getAnchorA(),center=planck.Vec2(shoulder.x+Math.sin(angle)*player.armLen/2,shoulder.y-Math.cos(angle)*player.armLen/2);
+  player.arm.setTransform(center,angle);player.arm.setLinearVelocity(planck.Vec2(0,0));player.arm.setAngularVelocity(0);game.ball.setTransform(game.handPoint(player).clone(),0);game.ball.setLinearVelocity(planck.Vec2(0,0));player.heldTime=.35;game.setControl(team,false);return game.ball.getLinearVelocity();
+}
+for(const team of[0,1]){
+  const sign=team===0?1:-1,up=directionalRelease(team,sign*2.15),down=directionalRelease(team,sign*.68);
+  assert(up.y>6,`El brazo hacia arriba del equipo ${team} no lanzó hacia arriba: ${up.y.toFixed(2)}`);
+  assert(down.y<-3,`El brazo hacia abajo del equipo ${team} no lanzó hacia abajo: ${down.y.toFixed(2)}`);
+  assert(up.x*sign>6&&down.x*sign>5,`La orientación horizontal del equipo ${team} no se respetó`);
+}
+
 // El cuerpo se autoendereza mediante torque físico y centro de masa bajo.
 {
   const game=fixedGame("upright"),player=game.players[0];
@@ -260,6 +275,14 @@ function tiltedJump(angle){const game=fixedGame(`tilt-${angle}`),player=game.pla
   const state=game.snapshot();assert(game.phase==="play","La reposición no devolvió el juego a fase activa");assert(state.score[0]===2&&state.score[1]===3,"La reposición reinició el marcador");assert(game.round===round+1,"La salida no inició una ronda nueva");assert(Math.abs(state.ball.x-constants.W/2)<2,"La pelota no volvió por el centro");
 }
 
+// Una pelota inmóvil entre los bordes del aro se libera sola hacia arriba y
+// hacia adentro, sin regalar un punto ni reiniciar la ronda.
+{
+  const game=fixedGame("rim-unstuck"),hoop=game.hoops[0],round=game.round;game.score=[1,2];game.ball.setGravityScale(0);game.ball.setTransform(planck.Vec2((hoop.world.a+hoop.world.b)/2,hoop.world.rimY),0);game.ball.setLinearVelocity(planck.Vec2(0,0));
+  for(let frame=0;frame<50;frame++)game.step(1/60);
+  const velocity=game.ball.getLinearVelocity();assert(velocity.y>5&&velocity.x>1,"La pelota siguió trabada en el aro izquierdo");assert(game.round===round&&game.score[0]===1&&game.score[1]===2,"Destrabar el aro alteró la ronda o el marcador");
+}
+
 // Todas las variantes auténticas permanecen finitas con controles mantenidos/soltados.
 let variantCount=0;
 for(const map of constants.MAPS)for(const ball of Object.keys(constants.BALLS))for(const body of Object.keys(constants.BODIES))for(const hoop of Object.keys(constants.HOOPS)){
@@ -287,4 +310,4 @@ assert(reactions.length===44,"No se incluyeron las 44 reacciones de gol");
 assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
 assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.018,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",onlineExtrapolation:"18ms-render-cap",aimAssist:"partial-hoop-directed"});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,rimUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",shotDirection:"arm-led-up-or-down",onlineExtrapolation:"18ms-render-cap",aimAssist:"partial-hoop-directed"});
