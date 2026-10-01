@@ -223,6 +223,24 @@ for(const ball of ["normal","light","heavy","rainbow"])for(const team of [0,1]){
   assert(velocity.y>5,`El tiro ${ball} del equipo ${team} no tuvo altura suficiente: ${velocity.y.toFixed(2)}`);
 }
 
+// Un lanzamiento que ya llega alto y descendiendo recibe la corrección final
+// hacia el hueco en todas las combinaciones de pelota y aro.
+for(const ball of ["normal","light","heavy","rainbow"])for(const hoopType of ["normal","high","low","wide"])for(const team of[0,1]){
+  const game=fixedGame(`funnel-${ball}-${hoopType}-${team}`,{ball,hoop:hoopType}),hoop=game.hoops[team===0?1:0],center=(hoop.world.a+hoop.world.b)/2,dir=team===0?1:-1;
+  game.shotAssistTimer=1;game.shotTeam=team;game.shotGuided=false;game.ball.setTransform(planck.Vec2(center-dir*.9,hoop.world.rimY+1),0);game.ball.setLinearVelocity(planck.Vec2(dir*8,-5));game.guideShotIntoHoop();
+  assert(game.shotGuided,`La asistencia final no detectó ${ball}/${hoopType}/${team}`);
+  for(let frame=0;frame<45&&game.score[team]===0;frame++)game.step(1/60);
+  assert(game.score[team]===game.ballCfg.points,`La asistencia no completó el tiro ${ball}/${hoopType}/${team}`);
+}
+
+// La ayuda cercana no debe convertir un lanzamiento ascendente o hacia abajo
+// en una canasta automática.
+{
+  const game=fixedGame("funnel-reject"),hoop=game.hoops[1],center=(hoop.world.a+hoop.world.b)/2,start=planck.Vec2(center-.8,hoop.world.rimY+1);
+  game.shotAssistTimer=1;game.shotTeam=0;game.ball.setTransform(start,0);game.ball.setLinearVelocity(planck.Vec2(8,3));game.guideShotIntoHoop();
+  assert(!game.shotGuided&&planck.Vec2.distance(game.ball.getPosition(),start)<.001,"La asistencia aceptó un tiro que todavía subía");
+}
+
 // La orientación real del brazo manda al soltar: arriba produce un tiro alto
 // y abajo conserva un tiro descendente, sin que la ayuda al aro lo invierta.
 function directionalRelease(team,angle){
@@ -275,6 +293,16 @@ function tiltedJump(angle){const game=fixedGame(`tilt-${angle}`),player=game.pla
   const state=game.snapshot();assert(game.phase==="play","La reposición no devolvió el juego a fase activa");assert(state.score[0]===2&&state.score[1]===3,"La reposición reinició el marcador");assert(game.round===round+1,"La salida no inició una ronda nueva");assert(Math.abs(state.ball.x-constants.W/2)<2,"La pelota no volvió por el centro");
 }
 
+// Un globo muy alto no está afuera: debe seguir la parábola y volver a caer.
+// La única salida válida es cruzar detrás de uno de los tableros.
+{
+  const game=fixedGame("high-ball-stays"),round=game?.round;
+  game.ball.setTransform(planck.Vec2(constants.W/100,(constants.H+180)/50),0);game.ball.setLinearVelocity(planck.Vec2(0,2));
+  for(let frame=0;frame<20;frame++)game.step(1/60);
+  assert(game.phase==="play"&&!game.ballIsOut(),"Un tiro alto fue marcado incorrectamente como pelota afuera");
+  assert(game.round===round,"El tiro alto reinició la ronda");
+}
+
 // Una pelota inmóvil entre los bordes del aro se libera sola hacia arriba y
 // hacia adentro, sin regalar un punto ni reiniciar la ronda.
 {
@@ -311,6 +339,6 @@ for(const name of reactions){const file=`public/assets/goal-reactions/${name}`,d
 const localResources=[...html.matchAll(/\b(?:src|href)="([^"]+)"/g)].map(match=>match[1].split(/[?#]/)[0]).filter(ref=>ref&&!/^(?:https?:|data:|#)/.test(ref));
 for(const ref of localResources)assert(fs.existsSync(`public/${ref.replace(/^\.\//,"")}`),`Falta el recurso local ${ref}`);
 assert(html.includes('id="goal-reaction"')&&app.includes("showGoalReaction()")&&app.includes("},2000)"),"La animación aleatoria de gol no está conectada durante dos segundos");
-assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.012,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
+assert(app.includes("onlineInputPrediction")&&app.includes("Math.min(.016,networkRenderTime-newest.time)"),"El online no limita la extrapolación ni predice el salto local");
 
-console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,rimUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",shotDirection:"arm-led-up-or-down",onlineExtrapolation:"12ms-render-cap",aimAssist:"partial-hoop-directed"});
+console.log("smoke-suite: PASS",{variants:variantCount,players:4,domIds:new Set(used).size,legs:2,selfRighting:true,armSway:"rear-reaching",iceSliding:true,ballTypes:true,ballUnstuck:true,rimUnstuck:true,playerSupportJump:true,goalReactions:reactions.length,steals:true,outReturn:"round-only",jump:"tilt-based",catch:"magnetic-hold-release",shotDirection:"arm-led-up-or-down",onlineExtrapolation:"16ms-render-cap",aimAssist:"adaptive-ballistic"});

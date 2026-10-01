@@ -13,14 +13,17 @@ Fecha: 2026-09-17
 - Comparación del mismo lanzamiento con aros a distinta altura para comprobar que no existe apuntado automático.
 - Autoequilibrio desde una caída casi horizontal, movimiento horizontal según inclinación y dos piernas físicas por personaje.
 - Zona de canasta ajustada al hueco real, colisiones de aro/tablero/poste y reposición animada sin reiniciar el marcador.
+- Los tiros por encima de la pantalla siguen activos; solamente cruzar detrás de un tablero inicia la reposición.
 - Canasta en ambos lados y pelota arcoíris de dos puntos.
 - Simulación espejo: los dos lados producen resultados equivalentes, sin ventaja fija para el jugador 1.
 - Dificultad de torneo progresiva entre octavos, cuartos, semifinal y final.
 - Sala privada con código, dos clientes, rechazo del tercero y snapshots sincronizados.
 - Creación, listado y entrada a una sala pública visible desde otro cliente Socket.IO.
 - Snapshots autoritativos a 30 Hz, con secuencia creciente, cuatro personajes articulados, una pelota y estado de tecla mantenida.
+- Snapshots compactados por debajo de 3,2 KB y descarte de estados WebSocket atrasados para evitar colas de latencia.
 - Conexión alternativa por HTTP polling, confirmación inmediata de entrada, cadencia suficiente y sincronización exacta entre clientes.
 - Integridad de las 44 reacciones de gol y existencia de todos los recursos locales referenciados por la interfaz.
+- Asistencia final de aro probada con las 16 combinaciones de pelota y aro; sólo se activa en tiros descendentes que ya alcanzaron la zona correcta.
 
 ## Ejecutar todo
 

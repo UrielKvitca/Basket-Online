@@ -40,10 +40,11 @@ async function run(){
   const motion=Math.abs(sa.ball.x-early.ball.x)+Math.abs(sa.ball.y-early.ball.y)+Math.abs(sa.players[0].x-early.players[0].x);
   if(sync>.001)throw new Error(`Desincronización: ${sync}`);
   if(motion<20)throw new Error("La partida online no avanzó");
-  if(sa.players.length!==4||sa.players.some(p=>p.arms.length!==1||p.legs.length!==2))throw new Error("Personajes incorrectos en snapshot");
+  if(sa.players.length!==4||sa.players.some(p=>!p.arm||p.legs.length!==2))throw new Error("Personajes incorrectos en snapshot");
   if(!states.a.some(s=>s.players.some(p=>p.control)))throw new Error("El servidor no registró el control mantenido");
   if(states.a.some((s,i)=>i&&s.net.seq<=states.a[i-1].net.seq))throw new Error("La secuencia de snapshots no es creciente");
   if(sa.net?.hz!==30||sa.net?.physicsHz!==60)throw new Error("Las frecuencias de red o física son incorrectas");
+  const snapshotBytes=Buffer.byteLength(JSON.stringify(sa));if(snapshotBytes>3200)throw new Error(`El snapshot online sigue siendo demasiado pesado: ${snapshotBytes} bytes`);
   const serverIntervals=states.a.slice(1).map((s,i)=>s.net.serverTime-states.a[i].net.serverTime),averageInterval=serverIntervals.reduce((sum,value)=>sum+value,0)/serverIntervals.length;
   if(averageInterval<25||averageInterval>43)throw new Error(`Cadencia de red inestable: ${averageInterval.toFixed(1)} ms`);
   if(states.a.some((s,i)=>i&&s.time<=states.a[i-1].time))throw new Error("Hay snapshots repetidos o fuera de orden temporal");
@@ -75,7 +76,7 @@ async function run(){
   const pe=pollingStates.e.at(-1),pf=pollingStates.f.at(-1),pollingSync=Math.abs(pe.ball.x-pf.ball.x)+Math.abs(pe.ball.y-pf.ball.y)+Math.abs(pe.players[0].x-pf.players[0].x);
   if(pollingSync>.001)throw new Error(`Polling desincronizado: ${pollingSync}`);
   if(pollingStates.e.some((s,i)=>i&&s.net.seq<=pollingStates.e[i-1].net.seq))throw new Error("Polling recibió snapshots fuera de orden");
-  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],snapshotHz:30,physicsHz:60,averageInterval:Math.round(averageInterval),syncDelta:sync,motion:Math.round(motion),inputAck:true,lanReady:true,publicBrowser:true,polling:{snapshots:[pollingStates.e.length,pollingStates.f.length],ackMs:ackDelay,syncDelta:pollingSync}})}`);
+  close(0,`online-suite: PASS ${JSON.stringify({privateCode:code,snapshots:[states.a.length,states.b.length],snapshotHz:30,physicsHz:60,snapshotBytes,averageInterval:Math.round(averageInterval),syncDelta:sync,motion:Math.round(motion),inputAck:true,lanReady:true,publicBrowser:true,polling:{snapshots:[pollingStates.e.length,pollingStates.f.length],ackMs:ackDelay,syncDelta:pollingSync}})}`);
 }
 
 server.stderr.on("data",data=>process.stderr.write(data));

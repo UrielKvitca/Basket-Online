@@ -2,6 +2,7 @@ services:
   - type: web
     name: basket-random-arena-server
     runtime: node
+    region: virginia
     plan: free
     buildCommand: npm install
     startCommand: npm start

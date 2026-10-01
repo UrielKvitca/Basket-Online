@@ -13,7 +13,7 @@ const app=express();
 app.disable("x-powered-by");
 app.use(express.static(path.join(__dirname,"public"),{extensions:["html"]}));
 const server=http.createServer(app);
-const io=new Server(server,{cors:{origin:origins.includes("*")?true:origins,methods:["GET","POST"]},pingInterval:8000,pingTimeout:15000,maxHttpBufferSize:1e5,perMessageDeflate:false});
+const io=new Server(server,{cors:{origin:origins.includes("*")?true:origins,methods:["GET","POST"]},pingInterval:8000,pingTimeout:15000,maxHttpBufferSize:1e5,perMessageDeflate:{threshold:1024,zlibDeflateOptions:{level:3}}});
 
 const rooms=new Map();
 const privateCodes=new Map();
@@ -31,7 +31,8 @@ function closeRoom(room){if(!room||room.closed)return;room.closed=true;clearInte
 function joinRoom(socket,room,profile){if(!room||room.closed||room.started||room.players.length>=2)return false;removeFromRoom(socket,false);socket.data.profile=sanitizeProfile(profile);socket.data.roomId=room.id;socket.data.lastInput=0;socket.data.lastInputSeq=0;socket.data.control=false;room.players.push(socket.id);room.profiles.push(socket.data.profile);socket.join(room.id);broadcastPublicRooms();if(room.players.length===2)startRoom(room);return true;}
 function publicRoomList(){return [...rooms.values()].filter(r=>r.type==="public"&&!r.closed&&!r.started&&r.players.length===1).sort((a,b)=>a.createdAt-b.createdAt).map(r=>({id:r.id,host:r.profiles[0]?.name||"JUGADOR",rank:r.profiles[0]?.rank||"NOVATO",skin:r.profiles[0]?.skin||"rookie",createdAt:r.createdAt,players:r.players.length,maxPlayers:2}));}
 function broadcastPublicRooms(){io.emit("public-rooms",{rooms:publicRoomList(),online:io.engine.clientsCount});}
-function sendSnapshot(room,target=io.to(room.id)){if(room.closed||!room.game)return;const snapshot=room.game.snapshot();snapshot.net={seq:++room.snapshotSeq,serverTime:Date.now(),ack:[...room.inputAck],hz:SNAPSHOT_HZ,physicsHz:60};target.emit("snapshot",snapshot);}
+function compactSnapshot(snapshot){const roundPart=part=>{if(!part)return;for(const key of["x","y","rot","vx","vy","omega","w","h","r"])if(Number.isFinite(part[key]))part[key]=Math.round(part[key]*100)/100;if(part.hand)roundPart(part.hand);};snapshot.time=Math.round(snapshot.time*1000)/1000;snapshot.freeze=Math.round((snapshot.freeze||0)*1000)/1000;snapshot.phaseTimer=Math.round((snapshot.phaseTimer||0)*1000)/1000;roundPart(snapshot.ball);for(const player of snapshot.players){roundPart(player);roundPart(player.body);roundPart(player.head);roundPart(player.arm);for(const part of player.legs||[])roundPart(part);delete player.torso;delete player.arms;}return snapshot;}
+function sendSnapshot(room){if(room.closed||!room.game)return;const snapshot=compactSnapshot(room.game.snapshot());snapshot.net={seq:++room.snapshotSeq,serverTime:Date.now(),ack:[...room.inputAck],hz:SNAPSHOT_HZ,physicsHz:60};for(const id of room.players){const socket=io.sockets.sockets.get(id);if(!socket)continue;if(socket.conn.transport.name==="websocket")socket.volatile.emit("snapshot",snapshot);else socket.emit("snapshot",snapshot);}}
 function startRoom(room){if(room.started||room.players.length!==2)return;room.started=true;const a=io.sockets.sockets.get(room.players[0]),b=io.sockets.sockets.get(room.players[1]);if(!a||!b){closeRoom(room);return;}
   const seed=`${room.id}-${Date.now()}`;room.game=new BasketEngine.Game({mode:"online",seed,profiles:room.profiles,firstTo:5,onEvent:e=>{io.to(room.id).emit("game-event",e);if(e.type==="finish")setTimeout(()=>closeRoom(room),7000);}});
   room.game.freeze=2.35;room.game.phaseTimer=2.35;
